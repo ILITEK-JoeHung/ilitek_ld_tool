@@ -998,6 +998,13 @@ int main(int argc, char *argv[])
 {
 	int ret = _FAIL;
 
+	if(argc < 7){
+		LD_ERR("Incorrect number of arguments\n");
+		LD_ERR("Arguments should be: FWUpgrade <Interface> <Protocol> <i2c driver file node> <i2c addr> <Hex path>\n");
+		LD_ERR("Example arguments: FWUpgrade USB V3 /dev/ilitek_ctrl 41 firmware.hex\n");
+		return ret;
+	}
+
 	check_args(argc, argv);
 
 	log_openfile();

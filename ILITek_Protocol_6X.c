@@ -315,12 +315,11 @@ int CheckBusy_6X(int count, int delay, int type)
 }
 
 /* Need to get IC mode and protocol version first */
-int GetFWID(uint16_t *customer_id, uint16_t *fwid)
+int GetFWID(uint16_t *fwid)
 {
 	uint8_t Wbuff[64], Rbuff[64];
 	int error;
 
-	*customer_id = 0;
 	*fwid = 0;
 
 	if ((ptl.ic_mode[0] == OP_MODE_BOOTLOADER &&
@@ -334,8 +333,33 @@ int GetFWID(uint16_t *customer_id, uint16_t *fwid)
 	if ((error = TransferData(Wbuff, 1, Rbuff, 4, 1000)) < 0)
 		return error;
 
-	*customer_id = Rbuff[0] | (Rbuff[1] << 8);
 	*fwid = Rbuff[2] | (Rbuff[3] << 8);
+
+	return 0;
+}
+
+int GetSensorID(uint8_t *sensor_id)
+{
+	uint8_t Wbuff[64], Rbuff[64];
+	int error;
+
+	*sensor_id = 0;
+
+	if ((ptl.ic_mode[0] == OP_MODE_BOOTLOADER &&
+	     ptl.ver < 0x010803) ||
+	    (ptl.ic_mode[0] == OP_MODE_APPLICATION &&
+	     ptl.ver < PROTOCOL_V6_0_4))
+	    	return -EINVAL;
+
+	Wbuff[0] = ILITEK_TP_CMD_GET_SENSOR_ID;
+
+	if ((error = TransferData(Wbuff, 1, Rbuff, 3, 1000)) < 0)
+		return error;
+
+	*sensor_id = Rbuff[2];
+
+        LD_DBG("sensor id: 0x%x, header: 0x%02x%02x\n",
+		*sensor_id, Rbuff[0], Rbuff[1]);
 
 	return 0;
 }

@@ -14,8 +14,7 @@
 #include "ILITek_CMDDefine.h"
 #include "ILITek_Device.h"
 #include "ILITek_Main.h"
-#include "API/ILITek_Upgrade.h"
-#include "API/ILITek_MpResult.h"
+#include "API/ILITek_Upgrade.h" 
 #include <string.h>
 #include <time.h>
 #include <arpa/inet.h>
@@ -161,7 +160,9 @@ static void check_fwid_args(int argc, char *argv[])
 
 }
 
-int get_fwid_by_edid(char *fwid_map_file, uint16_t *fwid)
+#define __MAYBE_UNUSED	__attribute__((unused))
+
+int get_fwid_by_lookup(char *fwid_map_file, uint16_t *fwid)
 {
 	int error;
 	FILE *fp;
@@ -171,14 +172,17 @@ int get_fwid_by_edid(char *fwid_map_file, uint16_t *fwid)
 	bool skip_first_line = false;
 
 	char *file_edid = NULL;
-	char *file_customer_id = NULL;
+	char __MAYBE_UNUSED *file_customer_id = NULL;
 	char *file_fwid = NULL;
 	char *file_sensor_id = NULL;
-	char *file_hex_name = NULL;
+
+        uint8_t sensor_id, sensor_id_mask, device_sensor_id;
 
 	memset(&edid, 0, sizeof(struct edid_block));
 	if ((error = get_edid(&edid, device_edid, sizeof(device_edid))) < 0)
 		return error;
+
+        GetSensorID(&device_sensor_id);
 
 	LD_DBG("find %s in fwid map file: %s\n", device_edid, fwid_map_file);
 
@@ -200,45 +204,40 @@ int get_fwid_by_edid(char *fwid_map_file, uint16_t *fwid)
 
 		/* fetch edid string */
 		file_edid = strsep(&line_ptr, ",");
-		if (!file_edid)
-			continue;
-
-		/* lookup table by edid */
-		if (strcmp(file_edid, device_edid))
-			continue;
-
-		LD_DBG("device_edid: %s matched\n", device_edid);
-
 		file_customer_id = strsep(&line_ptr, ",");
-		if (!file_customer_id)
-			break;
-
 		file_fwid = strsep(&line_ptr, ",");
-		if (!file_fwid)
-			break;
-
 		file_sensor_id = strsep(&line_ptr, ",");
-		if (!file_sensor_id)
-			break;
 
-		file_hex_name = strsep(&line_ptr, ",");
-		if (!file_hex_name)
-			break;
+                if (!file_fwid)
+                        continue;
 
-		break;
+                /* lookup table by edid */
+                if (file_edid && strcmp(file_edid, device_edid))
+                        continue;
+
+                /* lookup table by sensor-id */
+                if (file_sensor_id) {
+                        sscanf(file_sensor_id, "%02hhx-%02hhx",
+                                &sensor_id, &sensor_id_mask);
+
+                        if (sensor_id != (device_sensor_id & sensor_id_mask))
+                                continue;
+                }
+
+		LD_DBG("fwid: %s was found\n", file_fwid);
+
+	        sscanf(file_fwid, "%04hx", fwid);
+
+                fclose(fp);
+
+		return 0;
 	}
+
 	fclose(fp);
 
-	if (!file_fwid || !strlen(file_fwid) ||!strcmp(file_fwid, "\n")) {
-		LD_ERR("No matched edid string: %s found\n", device_edid);
-		return -EFAULT;
-	}
+        LD_ERR("No matched edid string: %s found\n", device_edid);
 
-	LD_DBG("fwid: %s was found\n", file_fwid);
-
-	sscanf(file_fwid, "%hx", fwid);
-
-	return 0;
+	return -EINVAL;
 }
 
 int Func_FWID(int argc, char *argv[])
@@ -248,18 +247,18 @@ int Func_FWID(int argc, char *argv[])
 
 	check_fwid_args(argc, argv);
 
+        if ((error = viGetPanelInfor()) < 0)
+		return error;
+
 	/*
 	 * Get FWID from EDID lookup table first.
 	 * If no matched edid string in the table, get FWID from FW secondly.
 	 * get FWID from FW should be accessible for both AP and BL mode.
 	 */
 	do {
-		error = get_fwid_by_edid(cmd_opt.fwid_map_file, &fwid);
+		error = get_fwid_by_lookup(cmd_opt.fwid_map_file, &fwid);
 		if (!error)
 			break;
-
-		if ((error = GetKernelVer()) < 0)
-			return error;
 
 		/* Lego series except 29xx series */
 		if (ptl.flash_data_start != 0x2C000) {
@@ -268,8 +267,8 @@ int Func_FWID(int argc, char *argv[])
 		}
 
 		/* 29XX series only */
-		if ((error = get_fwid_by_mpresult(&fwid)) < 0)
-			return error;
+		if ((error = GetFWID(&fwid)) < 0)
+		        return error;
 	} while (false);
 
 	/*

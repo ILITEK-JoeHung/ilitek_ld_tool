@@ -7,8 +7,7 @@ objects := ILITek_Main.c		\
 	   ILITek_Device.c		\
 	   ILITek_Protocol_3X.c		\
 	   ILITek_Protocol_6X.c		\
-	   API/ILITek_Upgrade.c		\
-	   API/ILITek_MpResult.c
+	   API/ILITek_Upgrade.c
 
 libraries := stdc++ rt pthread m
 

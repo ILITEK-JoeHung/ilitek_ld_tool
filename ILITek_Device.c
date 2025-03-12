@@ -67,39 +67,6 @@ unsigned char ucSignedDatas=0;
 //-----------------------------------
 
 #include <stdarg.h>
-char *str_format(const char *_fmt, ...)
-{
-	static char str[4096];
-	va_list args;
-
-	memset(str, 0, sizeof(str));
-
-	va_start(args, _fmt);
-	vsprintf(str, _fmt, args);
-	va_end(args);
-
-	return str;
-}
-
-char *str_array(uint8_t *buf, int size)
-{
-	static char str[8192];
-	int i;
-
-	memset(str, 0, sizeof(str));
-
-	for (i = 0; i < size; i++)
-		sprintf(str, "%s%02x.", str, buf[i]);
-
-	return str;
-}
-
-void add_format_str(char *str, int tag, const char *val)
-{
-	if (!str)
-		return;
-	sprintf(str, "%s%d=%s;", str, tag, val);
-}
 
 unsigned int hex_2_dec(char *hex, int len)
 {
@@ -206,7 +173,7 @@ int open_hidraw_device(uint32_t bus_type, unsigned long timeout_ms)
 	char dev_name[256];
 	DIR *dir = NULL;
 	struct dirent *ptr;
-	char hidraw_path[64];
+	char hidraw_path[512];
 	int hidraw_id;
 	int desc_size;
 	struct hidraw_report_descriptor report_desc;
@@ -313,7 +280,7 @@ void list_ilitek_usb_ports(uint16_t special_vid)
 	DIR *dir;
 	struct dirent *ptr;
 	const char usb_devs[64] = "/sys/bus/usb/devices";
-	char node[256];
+	char node[512];
 	uint16_t vid, pid;
 
 	if (!(dir = opendir(usb_devs))) {

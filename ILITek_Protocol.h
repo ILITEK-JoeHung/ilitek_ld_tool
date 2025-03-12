@@ -126,6 +126,7 @@ extern int ModeCtrl_V6(uint8_t mode, uint8_t engineer, int delay_ms);
 extern int WriteFlashEnable_BL1_8(unsigned int start,unsigned int end);
 extern int WriteSlaveFlashEnable_BL1_8(uint32_t start,uint32_t end);
 
-extern int GetFWID(uint16_t *customer_id, uint16_t *fwid);
+extern int GetFWID(uint16_t *fwid);
+extern int GetSensorID(uint8_t *sensor_id);
 
 #endif

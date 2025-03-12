@@ -28,7 +28,7 @@
 #ifdef USE_ANDROID
 #define TOOL_VERSION "ILITEK ANDROID STUDIO V2.0.2.0"
 #else
-#define TOOL_VERSION "ILITEK LINUX DAEMON V3.0.9.1"
+#define TOOL_VERSION "ILITEK LINUX DAEMON V3.0.9.2"
 #endif
 
 #define _APMode_  0x01
@@ -158,11 +158,7 @@ struct Netlink_Handle {
 	struct nlmsghdr *nlh;
 	struct msghdr msg;
 	struct iovec iov;
-};
-
-char *str_format(const char *_fmt, ...);
-char *str_array(uint8_t *buf, int size);
-void add_format_str(char *str, int tag, const char *val);
+}; 
 
 extern uint16_t get_le16(const uint8_t *p);
 extern int netlink_connect(struct Netlink_Handle *nl, const char *str,
